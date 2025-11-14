@@ -53,22 +53,17 @@ def send_to_n8n(url, data):
 
 def fetch_questions(metadata):
     """Llama al Flujo 1 de n8n para obtener la lista de preguntas filtradas."""
-    st.info("Buscando preguntas adaptadas a su Rol y Área...")
+
+    if questions_response:
+        # Caso 1: n8n respondió directamente con el ARRAY de preguntas (Opción A)
+        if isinstance(questions_response, list):
+            final_list = questions_response
+        
+        # Caso 2: n8n respondió con un DICT que contiene la clave 'questions' (Opción B)
+        elif isinstance(questions_response, dict) and 'questions' in questions_response:
+            if isinstance(questions_response['questions'], list):
+                final_list = questions_response['questions']
     
-    # Se utiliza la URL específica para la obtención de preguntas
-    questions_response = send_to_n8n(N8N_URL_FETCH_Q, metadata)
-    
-    if questions_response and isinstance(questions_response, list):
-        # El Webhook Response de n8n debe devolver una lista de objetos como:
-        # [{"ID_Pregunta": "P01", "Texto_Pregunta": "..."}, ...]
-        return questions_response
-    
-    st.error("No se pudo obtener la lista de preguntas de n8n o la respuesta tiene un formato inesperado.")
-    # Lista de fallback para pruebas si n8n falla
-    return [
-        {"ID_Pregunta": "FB01", "Texto_Pregunta": "¿Cuál es su principal desafío operativo actual que cree que la tecnología podría resolver?"},
-        {"ID_Pregunta": "FB02", "Texto_Pregunta": "¿Qué tipo de datos considera usted que se pierden o no se aprovechan en su área?"}
-    ]
 
 def save_answer(question_id, answer_text):
     """Llama al Flujo 2 de n8n para guardar una respuesta individual."""
