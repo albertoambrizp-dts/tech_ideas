@@ -3,11 +3,11 @@ import streamlit as st
 import requests
 import datetime
 import json
-from dotenv import load_dotenv
+#--from dotenv import load_dotenv
 
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Entrevista CMMI", page_icon="🚀", layout="centered")
-load_dotenv()
+#load_dotenv()
 
 # --- CARGA UNIVERSAL DE VARIABLES (.env O SECRETS DE CLOUD) ---
 N8N_URL_FETCH_Q = os.getenv("N8N_URL_FETCH_Q")
