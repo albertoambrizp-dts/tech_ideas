@@ -1,9 +1,49 @@
-[project]
-name = "finguia"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "streamlit>=1.51.0",
-]
+# Archivo: .streamlit/secrets.toml
+
+# --- Conexión a Google Sheets (nombre: "gsheets") ---
+# Este nombre debe coincidir con el usado en st.connection("gsheets")
+[connections.gsheets]
+# El ID de tu hoja de cálculo
+spreadsheet = "1Pq_qWcIACNw3A5j1Ptjopez3TYkWtLevEd69tSoLIh8"
+
+# Toda la información de tu Service Account (credenciales JSON)
+service_account_info = {
+    "type" = "service_account",
+    "project_id" = "tech-ideas-478602",
+    "private_key_id" = "dcb69dc722f55546f7326604f2f3c1f99f988dc0",
+    # La clave privada debe ir entre comillas triples para manejar las múltiples líneas.
+    "private_key" = """-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC8fib8J1a1+JQF
+AYjilNgNgpRw8KWAD8XuEAlRs6isYxnnLBjNGEh8oI5SEg9f2boTqhYfDjGZsjKp
+aiNFMRJt2vmYnQ78sm+UbQaHoro7vBugnq8byXC375/+4WeiXlqR38yq9lXYMYgQ
+2JATwsDYAYh4kM0zyQP0yvkbY1k8VddpIeZW/wgv5ZFl6qGGw+g9FPMh2Wz914Qj
+tsaN64ThXfNNYbQ/tP1Y3nmPcu75h7Sq2fuj6U3Vps54tETtSmRJGSgFXGXBJHfA
+V9w+v06gGOoKoKoeu9Jp/xLbXEOzhYvsoQCnatmKngs2A1LjY+T0IZLvWjKBIFQy
+6EZDHYGNAgMBAAECggEARXeUtI9m9I+VNbcYFLFYYrpCLNFznRuzDYaZeKPmwQmQ
+7VKiHUwawtuFOBfx1JhwbHjdyDo563PyGd/E+eYY7aWrISSY9mZomuIHawt86TDt
+WafBz1LRGOjWJWA7CmsNo/8/9a3te0zd4Z9+kdnPqov+GLj8913Y+Gmpnv9hTsuN
+p/xH31A7A6Tsd8hJ2qME+C0A4k7nnDuME3+1z7LoWOi/KfMUgV6eYy37e4dqAxY6
+BZWaUiVuw8Z9hD2UZGZX5Z56FGGjrpnYJ7vY9ymp0j4WEKjfeHePhg75lH0X8JmK
+u5h4ZrF6AVtMZ40helt0w7XAqZ5jLzjjy06frb3wXQKBgQDu72N5mPausd5oUbVa
+IXWcMZ/I7H8Wg6iSMJyMr7RJKsxMfaIljdHaJFDOTgMH0c6Ysv26kZyjRbOwGIEp
+UmkkE43m4bd5PUVeiIyPIXEsLGgmoRDm9ifTq0DQnRM8b2PHRUf8UHW2Dc6dHdqm
+8UK+8OJx0irhmrVfLzxoJVRwKBgQDJ9H4fHmtymla8v6llVsackGRPyh0LSSvm
+X/qIDaDlKbJCh1qV6HimpZa+0O3FqB42f++AznfGE0p+mOSoPqDOHvFWacKfM+gD
+0qWdMMeZtA9N1CLa8HSfMsFxPBr1zVUFmn/c2IBD/HO1P2mJrzJnDAcb8sRHHwcG
+RoNZq0csiwKBgQDPVGKZDSZhCG7ZTq1y/D21v0nLa4wL2UrZL91oJr7mDoEgjpO4
+yosiIwkLO55dlq0Sy55n2hp1gvIdB+ZsGNqrN1yWz54JUiVzlkGBoZ82mYH2oySr
+hUWh4qRnYSVj97Q5IeEJDDhYNTroExO8cPVeAmA8LAaRpVOatlH/Pm2x2QKBgAhB
+ZVJyVOQXaQpIL22EEZRe1qroUS2f7Rp6u+wJ2pTjknJGBC7ylNQDGtlsAvw8dhe2
+PR0f04eWTEpGh7pU7Q/f9e+ZXSpS3d4iI0D8uHwQ/zsoO9CFWc8ULRIq6dM4dIxJ
+F4b4lq2wyS4UjITjU4Ug2b2Lu/hITWo1QbNNrBgnAoGAUV/LvPK4eLqYwfDv2IFj
+kcd0eB6iAOU7KJcJcK2bC3m7UH9rN2OevV/JK8Ee7fF7NEws8tiDmQrNZqC4+3qe
+AUiI6RJBp8WQjy4JnFm4DPj5AeYty3ESYjskfi+0r6Un17gCWK+qFS0JCFSUKMJL
+DaZXz3kLSNXVzJQmtqMScpM=
+-----END PRIVATE KEY-----""",
+    "client_email" = "analista-consultor@tech-ideas-478602.iam.gserviceaccount.com",
+    "client_id" = "118103442304821897721",
+    "auth_uri" = "https://accounts.google.com/o/oauth2/auth",
+    "token_uri" = "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url" = "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url" = "https://www.googleapis.com/robot/v1/metadata/x509/analista-consultor%40tech-ideas-478602.iam.gserviceaccount.com"
+}
