@@ -112,7 +112,7 @@ def show_metadata_form():
     with st.form("login_form"):
         col1, col2 = st.columns(2)
         with col1:
-            user_id = st.text_input("👤 Su Nombre / ID", value=DEFAULT_USER_ID)
+            user_id = st.text_input("👤 Su Nombre / ID")
             area = st.selectbox("📊 Área", ["Operaciones", "Tecnología", "Finanzas", "Marketing", "RRHH"])
         with col2:
             role = st.selectbox("🎯 Rol", ["Analista", "Coordinador", "Gerente", "Director"])
