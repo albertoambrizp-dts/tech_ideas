@@ -4,7 +4,7 @@ import requests
 import datetime
 import json
 from dotenv import load_dotenv
-from openai import OpenAI 
+#from openai import OpenAI 
 
 # --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
 
