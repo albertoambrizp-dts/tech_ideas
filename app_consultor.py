@@ -203,7 +203,7 @@ def run_full_analysis(df_respuestas):
     return reporte_markdown
 
 # --- 5. INTERFAZ DASHBOARD ---
-st.title("📊 Tablero de Control: Diagnóstico de Madurez")
+st.title("📊 Tablero de Control: Diagnóstico de Madurez") # FIX: Forzar Reconstruccion
 
 df = get_data_only()
 
