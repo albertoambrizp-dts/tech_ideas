@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import openai # <-- ¡NUEVA LIBRERÍA!
+# import openai # <-- ¡ELIMINADO! NO FALLARÁ LA INSTALACIÓN
 from sentence_transformers import SentenceTransformer, util
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -9,45 +9,24 @@ import os
 from fpdf import FPDF
 import numpy as np
 from dotenv import load_dotenv
-import requests # Necesario para la conexión con N8N
+import requests # Necesario para la conexión con N8N y AHORA OpenAI
 
 # --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
 st.set_page_config(layout="wide", page_title="Tablero de Control - Consultor", page_icon="📊")
 load_dotenv() # Necesario solo si corres en local
 
 # Carga de variables (buscadas en os.environ, que incluye Streamlit Secrets)
-# CAMBIAMOS A OPENAI_API_KEY
+# Usamos OPENAI_API_KEY, que está en tus Secrets
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY') 
 SERPER_API_KEY = os.getenv('SERPER_API_KEY')
 
-# URLs de los Webhooks (permanecen igual)
+# URLs de los Webhooks (las dos URLs separadas que ya configuraste)
 N8N_URL_FETCH_RESPONSES = os.getenv("N8N_URL_FETCH_RESPONSES")
 N8N_URL_FETCH_CONTEXT = os.getenv("N8N_URL_FETCH_CONTEXT")
 
-# Inicialización del cliente OpenAI
-if OPENAI_API_KEY:
-    openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+# No se inicializa ningún cliente de IA (usaremos requests)
 
 # --- 2. FUNCIONES DE CARGA DE DATOS (N8N) ---
-
-def fetch_data_from_n8n(url, key_name):
-    """Función genérica para obtener datos de un Webhook de N8N."""
-    if not url:
-        st.error(f"❌ ERROR: La URL de {key_name} no está configurada en los Secrets.")
-        return []
-
-    try:
-        response = requests.get(url, timeout=20) 
-        if response.status_code != 200:
-            st.error(f"❌ Error N8N ({response.status_code}) en {key_name}: Falló al devolver datos.")
-            return []
-        
-        # N8N devuelve la lista de filas directamente
-        return response.json()
-
-    except Exception as e:
-        st.error(f"❌ Error de conexión o JSON en {key_name}: {e}")
-        return []
 
 @st.cache_data(ttl="5m") # Cacheamos el resultado para no sobrecargar N8N
 def get_data_only():
@@ -72,6 +51,26 @@ def get_data_only():
         }
     
     return df_respuestas, contexto_global
+
+def fetch_data_from_n8n(url, key_name):
+    """Función genérica para obtener datos de un Webhook de N8N."""
+    if not url:
+        st.error(f"❌ ERROR: La URL de {key_name} no está configurada en los Secrets.")
+        return []
+
+    try:
+        response = requests.get(url, timeout=20) 
+        if response.status_code != 200:
+            st.error(f"❌ Error N8N ({response.status_code}) en {key_name}: Falló al devolver datos. Revise que el flujo de N8N esté ACTIVO.")
+            return []
+        
+        # N8N devuelve la lista de filas directamente
+        return response.json()
+
+    except Exception as e:
+        st.error(f"❌ Error de conexión o JSON en {key_name}: {e}. Intente recargar.")
+        return []
+
 
 # --- 3. CLASE PDF AVANZADA (Se mantiene igual) ---
 class PDF(FPDF):
@@ -148,13 +147,12 @@ def run_full_analysis(df_respuestas, contexto_global):
         except Exception as e:
             llm_similitud_context = f"Error en embeddings: {e}"
 
-    # --- LLAMADA A OPENAI (GPT-4o mini) ---
+    # --- LLAMADA A OPENAI CON REQUESTS ---
     reporte = "Error: Reporte no generado."
     if OPENAI_API_KEY:
         try:
             raw = "\n".join([f"- {row.get('rol_jerarquico', 'N/A')}: {row.get('respuesta_texto', 'N/A')}" for _, row in df_respuestas.iterrows()])
             
-            # El prompt de Gemini se convierte en la system instruction y el user message
             SYSTEM_INSTRUCTION = f"""
             Eres un Auditor Senior Big Four. Genera reporte Markdown CMMI (Nivel 1-5).
             Justifica el nivel usando la métrica de Silueta ({metrica_silueta}) y Similitud de Coseno.
@@ -176,18 +174,31 @@ def run_full_analysis(df_respuestas, contexto_global):
             ## 4. Análisis de Brechas
             ## 5. Recomendaciones
             """
-
-            # Llamada a la API de OpenAI
-            response = openai_client.chat.completions.create(
-                model="gpt-4o-mini", # Modelo más rápido y económico
-                messages=[
+            
+            headers = {
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
                     {"role": "system", "content": SYSTEM_INSTRUCTION},
                     {"role": "user", "content": prompt}
                 ]
-            )
-            reporte = response.choices[0].message.content
+            }
+
+            # Llamada directa a la API de OpenAI (usando requests)
+            response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=45)
+            
+            if response.status_code == 200:
+                reporte = response.json()['choices'][0]['message']['content']
+            else:
+                 reporte = f"Error al generar con OpenAI (Status {response.status_code}): {response.text}"
+                 st.error(reporte) # Muestra el error de la API si falla
+
         except Exception as e: 
-            reporte = f"Error al generar con OpenAI: {e}"
+            reporte = f"Error de conexión HTTP con OpenAI: {e}"
+            st.error(reporte)
     return reporte
 
 # --- 5. INTERFAZ DASHBOARD ---
