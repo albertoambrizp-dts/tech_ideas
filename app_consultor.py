@@ -8,7 +8,7 @@ import requests # Necesario para la conexión con N8N y OpenAI
 
 # --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
 st.set_page_config(layout="wide", page_title="Tablero de Control - Consultor", page_icon="📊")
-load_dotenv() # Necesario solo si corres en local
+#load_dotenv() # Necesario solo si corres en local
 
 # Carga de variables (buscadas en os.environ, que incluye Streamlit Secrets)
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY') 
