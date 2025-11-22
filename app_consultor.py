@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import os
 import numpy as np
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 import requests # Necesario para la conexión con N8N y OpenAI
 
 # --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
@@ -20,7 +20,7 @@ N8N_URL_FETCH_CONTEXT = os.getenv("N8N_URL_FETCH_CONTEXT")
 
 # --- 2. FUNCIONES DE CARGA DE DATOS (N8N) ---
 
-@st.cache_data(ttl="5m") # Cacheamos el resultado para no sobrecargar N8N
+@st.cache_data(ttl="30s") # Cacheamos el resultado para no sobrecargar N8N
 def get_data_only():
     """Descarga datos de respuestas y contexto desde los dos Webhooks de N8N."""
     
