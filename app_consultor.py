@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
+import openai # <-- ¡NUEVA LIBRERÍA!
 from sentence_transformers import SentenceTransformer, util
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -16,15 +16,17 @@ st.set_page_config(layout="wide", page_title="Tablero de Control - Consultor", p
 load_dotenv() # Necesario solo si corres en local
 
 # Carga de variables (buscadas en os.environ, que incluye Streamlit Secrets)
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+# CAMBIAMOS A OPENAI_API_KEY
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY') 
 SERPER_API_KEY = os.getenv('SERPER_API_KEY')
 
-# URLs de los nuevos Webhooks
+# URLs de los Webhooks (permanecen igual)
 N8N_URL_FETCH_RESPONSES = os.getenv("N8N_URL_FETCH_RESPONSES")
 N8N_URL_FETCH_CONTEXT = os.getenv("N8N_URL_FETCH_CONTEXT")
 
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# Inicialización del cliente OpenAI
+if OPENAI_API_KEY:
+    openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 # --- 2. FUNCIONES DE CARGA DE DATOS (N8N) ---
 
@@ -146,11 +148,13 @@ def run_full_analysis(df_respuestas, contexto_global):
         except Exception as e:
             llm_similitud_context = f"Error en embeddings: {e}"
 
-    # Gemini
+    # --- LLAMADA A OPENAI (GPT-4o mini) ---
     reporte = "Error: Reporte no generado."
-    if GEMINI_API_KEY:
+    if OPENAI_API_KEY:
         try:
             raw = "\n".join([f"- {row.get('rol_jerarquico', 'N/A')}: {row.get('respuesta_texto', 'N/A')}" for _, row in df_respuestas.iterrows()])
+            
+            # El prompt de Gemini se convierte en la system instruction y el user message
             SYSTEM_INSTRUCTION = f"""
             Eres un Auditor Senior Big Four. Genera reporte Markdown CMMI (Nivel 1-5).
             Justifica el nivel usando la métrica de Silueta ({metrica_silueta}) y Similitud de Coseno.
@@ -162,11 +166,28 @@ def run_full_analysis(df_respuestas, contexto_global):
             {llm_similitud_context}
             ### 3. ENTREVISTAS
             {raw}
+            
+            ### TAREA
+            Genera el reporte en Markdown siguiendo esta estructura estricta:
+            # Reporte Ejecutivo de Madurez Digital
+            ## 1. Diagnóstico General
+            ## 2. Hallazgos Críticos
+            ## 3. Fortalezas
+            ## 4. Análisis de Brechas
+            ## 5. Recomendaciones
             """
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            reporte = model.generate_content(prompt).text
+
+            # Llamada a la API de OpenAI
+            response = openai_client.chat.completions.create(
+                model="gpt-4o-mini", # Modelo más rápido y económico
+                messages=[
+                    {"role": "system", "content": SYSTEM_INSTRUCTION},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            reporte = response.choices[0].message.content
         except Exception as e: 
-            reporte = f"Error al generar con Gemini: {e}"
+            reporte = f"Error al generar con OpenAI: {e}"
     return reporte
 
 # --- 5. INTERFAZ DASHBOARD ---
@@ -187,7 +208,7 @@ if not df.empty:
     st.bar_chart(df['rol_jerarquico'].value_counts())
     
     if st.button("🚀 GENERAR REPORTE PDF", type="primary"):
-        with st.spinner("Ejecutando análisis profundo (Embeddings + Gemini)..."):
+        with st.spinner("Ejecutando análisis profundo (Embeddings + OpenAI)..."):
             reporte_md = run_full_analysis(df, contexto)
             pdf = PDF()
             pdf.add_page()
