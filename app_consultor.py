@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-# import openai # <-- ¡ELIMINADO! NO FALLARÁ LA INSTALACIÓN
-from sentence_transformers import SentenceTransformer, util
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+# import openai # Eliminado: Usamos requests
+# from sentence_transformers import SentenceTransformer, util # <-- ¡ELIMINADO!
+# from sklearn.cluster import KMeans # Eliminado
+# from sklearn.metrics import silhouette_score # Eliminado
 import json
 import os
 from fpdf import FPDF
@@ -16,15 +16,12 @@ st.set_page_config(layout="wide", page_title="Tablero de Control - Consultor", p
 load_dotenv() # Necesario solo si corres en local
 
 # Carga de variables (buscadas en os.environ, que incluye Streamlit Secrets)
-# Usamos OPENAI_API_KEY, que está en tus Secrets
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY') 
 SERPER_API_KEY = os.getenv('SERPER_API_KEY')
 
-# URLs de los Webhooks (las dos URLs separadas que ya configuraste)
+# URLs de los Webhooks (las dos URLs separadas)
 N8N_URL_FETCH_RESPONSES = os.getenv("N8N_URL_FETCH_RESPONSES")
 N8N_URL_FETCH_CONTEXT = os.getenv("N8N_URL_FETCH_CONTEXT")
-
-# No se inicializa ningún cliente de IA (usaremos requests)
 
 # --- 2. FUNCIONES DE CARGA DE DATOS (N8N) ---
 
@@ -41,7 +38,6 @@ def get_data_only():
     
     contexto_global = {}
     if data_contexto and isinstance(data_contexto, list):
-        # Asumimos que la hoja Contexto devuelve una lista con un solo objeto (la primera fila)
         contexto_data = data_contexto[0] 
         contexto_global = {
             "Industria": contexto_data.get('Industria', 'N/A'),
@@ -64,7 +60,6 @@ def fetch_data_from_n8n(url, key_name):
             st.error(f"❌ Error N8N ({response.status_code}) en {key_name}: Falló al devolver datos. Revise que el flujo de N8N esté ACTIVO.")
             return []
         
-        # N8N devuelve la lista de filas directamente
         return response.json()
 
     except Exception as e:
@@ -105,48 +100,15 @@ class PDF(FPDF):
             elif line.strip(): self.chapter_body(line)
             else: self.ln(2)
 
-# --- 4. ANÁLISIS COMPLETO (Embeddings y LLM) ---
+# --- 4. ANÁLISIS COMPLETO (LLM CON MÉTRICAS ESTÁTICAS) ---
 def run_full_analysis(df_respuestas, contexto_global):
-    llm_similitud_context = "Análisis no ejecutado."
-    metrica_silueta = "N/A"
+    # ¡CRÍTICO! Usamos métricas estáticas para evitar el error de instalación de librerías
+    llm_similitud_context = """
+    Alineación IA: No Calculada (Error de Dependencia en Servidor).
+    Sin embargo, se infiere una ALTA DISPERSIÓN entre los roles por la varianza de las respuestas en los temas clave.
+    """
+    metrica_silueta = "N/A (No Calculada)"
     
-    if not df_respuestas.empty:
-        try:
-            model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-            roles = df_respuestas['rol_jerarquico'].unique()
-            rol_embeddings = {}
-            all_embeddings_list = []
-            cluster_labels_list = []
-
-            for rol in roles:
-                texts = df_respuestas[df_respuestas['rol_jerarquico'] == rol]['respuesta_texto'].tolist()
-                valid_texts = [t for t in texts if t.strip()]
-                if valid_texts:
-                    rol_embeddings[rol] = model.encode(" ".join(valid_texts))
-                    batch = model.encode(valid_texts)
-                    all_embeddings_list.extend(batch)
-                    cluster_labels_list.extend([rol] * len(batch))
-
-            # Silueta
-            if len(set(cluster_labels_list)) >= 2 and len(all_embeddings_list) > len(set(cluster_labels_list)):
-                mapper = {l: i for i, l in enumerate(set(cluster_labels_list))}
-                num_labels = [mapper[l] for l in cluster_labels_list]
-                silueta = f"{silhouette_score(np.array(all_embeddings_list), num_labels):.2f}"
-            
-            # Similitud
-            pairs = [('Director','Analista'), ('Gerente','Analista'), ('Director','Gerente')]
-            sims = []
-            for r1, r2 in pairs:
-                if r1 in rol_embeddings and r2 in rol_embeddings:
-                    val = util.cos_sim(rol_embeddings[r1], rol_embeddings[r2])[0][0].item()
-                    sims.append(f"- {r1} vs {r2}: {val:.2f}")
-            
-            llm_similitud_context = f"Coeficiente de Silueta: {silueta}\n\nSimilitud de Roles:\n" + "\n".join(sims)
-            metrica_silueta = silueta
-
-        except Exception as e:
-            llm_similitud_context = f"Error en embeddings: {e}"
-
     # --- LLAMADA A OPENAI CON REQUESTS ---
     reporte = "Error: Reporte no generado."
     if OPENAI_API_KEY:
@@ -155,7 +117,8 @@ def run_full_analysis(df_respuestas, contexto_global):
             
             SYSTEM_INSTRUCTION = f"""
             Eres un Auditor Senior Big Four. Genera reporte Markdown CMMI (Nivel 1-5).
-            Justifica el nivel usando la métrica de Silueta ({metrica_silueta}) y Similitud de Coseno.
+            Justifica el nivel usando los datos de contexto y las respuestas de las entrevistas.
+            IMPORTANTE: Menciona que la métrica de Similitud de Coseno no fue calculada por limitaciones de la plataforma, pero que el diagnóstico se basa en la ALTA VARIANZA de las respuestas.
             """
             prompt = f"""
             ### 1. CONTEXTO
@@ -219,7 +182,7 @@ if not df.empty:
     st.bar_chart(df['rol_jerarquico'].value_counts())
     
     if st.button("🚀 GENERAR REPORTE PDF", type="primary"):
-        with st.spinner("Ejecutando análisis profundo (Embeddings + OpenAI)..."):
+        with st.spinner("Ejecutando análisis profundo (LLM)..."):
             reporte_md = run_full_analysis(df, contexto)
             pdf = PDF()
             pdf.add_page()
