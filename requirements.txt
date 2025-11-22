@@ -7,3 +7,4 @@ oauth2client
 google-generativeai
 fpdf2
 google-search-results
+google-generativeai
