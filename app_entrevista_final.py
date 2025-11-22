@@ -7,7 +7,7 @@ import json
 
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Entrevista CMMI", page_icon="🚀", layout="centered")
-#load_dotenv()
+#gitload_dotenv()
 
 # --- CARGA UNIVERSAL DE VARIABLES (.env O SECRETS DE CLOUD) ---
 N8N_URL_FETCH_Q = os.getenv("N8N_URL_FETCH_Q")

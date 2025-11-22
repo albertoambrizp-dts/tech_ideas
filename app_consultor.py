@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-# Eliminamos gspread, oauth2client y reeplazamos por st_gsheets_connection
-from streamlit_gsheets import GSheetsConnection 
 import google.generativeai as genai
 from sentence_transformers import SentenceTransformer, util
 from sklearn.cluster import KMeans
@@ -11,6 +9,7 @@ import os
 from fpdf import FPDF
 import numpy as np
 from dotenv import load_dotenv
+import requests # Necesario para la conexión con N8N
 
 # --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
 st.set_page_config(layout="wide", page_title="Tablero de Control - Consultor", page_icon="📊")
@@ -18,57 +17,61 @@ load_dotenv() # Necesario solo si corres en local
 
 # Carga de variables (buscadas en os.environ, que incluye Streamlit Secrets)
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-APP_ID = os.getenv('APP_ID') or "1Pq_qWcIACNw3A5j1Ptjopez3TYkWtLevEd69tSoLIh8"
 SERPER_API_KEY = os.getenv('SERPER_API_KEY')
+
+# URLs de los nuevos Webhooks
+N8N_URL_FETCH_RESPONSES = os.getenv("N8N_URL_FETCH_RESPONSES")
+N8N_URL_FETCH_CONTEXT = os.getenv("N8N_URL_FETCH_CONTEXT")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-# --- 2. FUNCIÓN PRINCIPAL DE CONEXIÓN A GOOGLE SHEETS ---
+# --- 2. FUNCIONES DE CARGA DE DATOS (N8N) ---
 
-@st.cache_resource
-def get_gsheets_connection():
-    """Crea y devuelve el objeto de conexión global."""
-    # El secreto 'gsheets' se configura automáticamente con el bloque [gcp_service_account]
-    try:
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        return conn
-    except Exception as e:
-        st.error(f"Error al establecer conexión con Google Sheets: {e}")
-        return None
-
-def get_data_only():
-    """Descarga datos de las hojas 'Respuestas' y 'Contexto'."""
-    conn = get_gsheets_connection()
-    if conn is None: return pd.DataFrame(), {}
-    
-    df_respuestas = pd.DataFrame()
-    contexto_data = {}
+def fetch_data_from_n8n(url, key_name):
+    """Función genérica para obtener datos de un Webhook de N8N."""
+    if not url:
+        st.error(f"❌ ERROR: La URL de {key_name} no está configurada en los Secrets.")
+        return []
 
     try:
-        # 1. Cargar Respuestas (Hoja principal)
-        df_respuestas = conn.read(spreadsheet=APP_ID, worksheet="Respuestas", ttl="5m")
-        # Aseguramos que la columna de respuesta exista
-        if 'respuesta_texto' not in df_respuestas.columns:
-            st.error("Error: La hoja 'Respuestas' no tiene la columna 'respuesta_texto'.")
-            return pd.DataFrame(), {}
-
-        # 2. Cargar Contexto
-        df_contexto = conn.read(spreadsheet=APP_ID, worksheet="Contexto", ttl="1h")
-        if not df_contexto.empty:
-            contexto_data = {
-                "Industria": df_contexto.iloc[0].get('Industria', 'N/A'),
-                "Mision": df_contexto.iloc[0].get('Mision', 'N/A'),
-                "Vision": df_contexto.iloc[0].get('Vision', 'N/A'),
-                "KPIs": df_contexto.iloc[0].get('KPIs_Actuales', 'N/A')
-            }
+        response = requests.get(url, timeout=20) 
+        if response.status_code != 200:
+            st.error(f"❌ Error N8N ({response.status_code}) en {key_name}: Falló al devolver datos.")
+            return []
         
-    except Exception as e:
-        st.error(f"❌ Error al leer las hojas: {e}")
-    
-    return df_respuestas, contexto_data
+        # N8N devuelve la lista de filas directamente
+        return response.json()
 
-# --- 3. CLASE PDF AVANZADA (Igual al Notebook) ---
+    except Exception as e:
+        st.error(f"❌ Error de conexión o JSON en {key_name}: {e}")
+        return []
+
+@st.cache_data(ttl="5m") # Cacheamos el resultado para no sobrecargar N8N
+def get_data_only():
+    """Descarga datos de respuestas y contexto desde los dos Webhooks de N8N."""
+    
+    # 1. Obtener Respuestas
+    data_respuestas = fetch_data_from_n8n(N8N_URL_FETCH_RESPONSES, "Respuestas")
+    df_respuestas = pd.DataFrame(data_respuestas)
+    
+    # 2. Obtener Contexto
+    data_contexto = fetch_data_from_n8n(N8N_URL_FETCH_CONTEXT, "Contexto")
+    
+    contexto_global = {}
+    if data_contexto and isinstance(data_contexto, list):
+        # Asumimos que la hoja Contexto devuelve una lista con un solo objeto (la primera fila)
+        contexto_data = data_contexto[0] 
+        contexto_global = {
+            "Industria": contexto_data.get('Industria', 'N/A'),
+            "Mision": contexto_data.get('Mision', 'N/A'),
+            "Vision": contexto_data.get('Vision', 'N/A'),
+            "KPIs": contexto_data.get('KPIs_Actuales', 'N/A')
+        }
+    
+    return df_respuestas, contexto_global
+
+# --- 3. CLASE PDF AVANZADA (Se mantiene igual) ---
 class PDF(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 12)
@@ -103,12 +106,10 @@ class PDF(FPDF):
 
 # --- 4. ANÁLISIS COMPLETO (Embeddings y LLM) ---
 def run_full_analysis(df_respuestas, contexto_global):
-    # Lógica de Embeddings y LLM (se mantiene)
     llm_similitud_context = "Análisis no ejecutado."
     metrica_silueta = "N/A"
     
     if not df_respuestas.empty:
-        # Simplificación de Embeddings para la demo
         try:
             model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
             roles = df_respuestas['rol_jerarquico'].unique()
@@ -164,7 +165,8 @@ def run_full_analysis(df_respuestas, contexto_global):
             """
             model = genai.GenerativeModel('gemini-2.5-flash')
             reporte = model.generate_content(prompt).text
-        except: pass
+        except Exception as e: 
+            reporte = f"Error al generar con Gemini: {e}"
     return reporte
 
 # --- 5. INTERFAZ DASHBOARD ---

@@ -1,12 +1,9 @@
 streamlit
+requests
+python-dotenv
 pandas
 gspread
 oauth2client
 google-generativeai
-sentence-transformers
-scikit-learn
-fpdf
-python-dotenv
-matplotlib
-numpy
-requests
+fpdf2
+google-search-results
