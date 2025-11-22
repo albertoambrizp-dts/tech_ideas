@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import os
 import numpy as np
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 import requests # Necesario para la conexión con N8N y OpenAI
 
 # --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
