@@ -80,7 +80,10 @@ def run_full_analysis(df_respuestas, contexto_global):
             raw = "\n".join([f"- {row.get('rol_jerarquico', 'N/A')}: {row.get('respuesta_texto', 'N/A')}" for _, row in df_respuestas.iterrows()])
             
             SYSTEM_INSTRUCTION = f"""
-            Eres un Auditor Senior Big Four. Genera reporte Markdown CMMI (Nivel 1-5).
+            Eres un Auditor Ejecutivo y Consultor Senior de una firma 'Big Four' (como Deloitte o PwC).
+            Tu tarea es analizar la siguiente información (Contexto, Embeddings y Datos Crudos) y generar un Reporte Ejecutivo de Auditoría de Madurez Digital.
+            Debes basar tu diagnóstico en el Modelo de Madurez CMMI (Nivel 1 a 5).
+            Sé crítico, analítico y profesional. La salida debe ser un documento Markdown detallado.
             Justifica el nivel usando los datos de contexto y las respuestas de las entrevistas.
             IMPORTANTE: Usa la 'Alineación de Roles' simulada en la Sección 2 como prueba de tu diagnóstico. El diagnóstico debe ser de Nivel 1 (Inicial) o Nivel 2 (Gestionado).
             """
@@ -93,13 +96,24 @@ def run_full_analysis(df_respuestas, contexto_global):
             {raw}
             
             ### TAREA
-            Genera el reporte en Markdown siguiendo esta estructura estricta:
+            Genera el reporte aquí, siguiendo esta estructura estricta en Markdown:
+
             # Reporte Ejecutivo de Madurez Digital
+
             ## 1. Diagnóstico General
-            ## 2. Hallazgos Críticos
-            ## 3. Fortalezas
-            ## 4. Análisis de Brechas
-            ## 5. Recomendaciones
+            (Asigna un Nivel de Madurez CMMI (1-5) y justifica por qué en un párrafo. Usa la información de CONTEXTO 1, 2 y 3.)
+
+            ## 2. Hallazgos Críticos (Puntos de Riesgo)
+            (Lista de 3-5 puntos críticos o 'Red Flags' identificados en las entrevistas (CONTEXTO 4) que ponen en riesgo la operación o la Misión (CONTEXTO 1).)
+
+            ## 3. Buenas Prácticas Identificadas (Fortalezas)
+            (Lista de 3-5 puntos fuertes o prácticas innovadoras encontradas en las entrevistas (CONTEXTO 4).)
+
+            ## 4. Análisis de Brechas (GAP Analysis)
+            (Compara la Misión/Visión (CONTEXTO 1) con los Hallazgos Críticos (Punto 2) y la Alineación Interna (CONTEXTO 3). ¿Dónde está la mayor desconexión?,siempre regresa una tabla con las brechas entre los roles y su puntuación)
+
+            ## 5. Recomendaciones Accionables
+            (Un plan de acción detallado, priorizado por impacto. Qué hacer, quién es responsable (rol), y cómo medirlo.)
             """
             
             headers = {
