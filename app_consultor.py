@@ -110,7 +110,7 @@ def run_full_analysis(df_respuestas, contexto_global):
             (Lista de 3-5 puntos fuertes o prácticas innovadoras encontradas en las entrevistas (CONTEXTO 4).)
 
             ## 4. Análisis de Brechas (GAP Analysis)
-            (Compara la Misión/Visión (CONTEXTO 1) con los Hallazgos Críticos (Punto 2) y la Alineación Interna (CONTEXTO 3). ¿Dónde está la mayor desconexión?,siempre regresa una tabla con las brechas entre los roles y su puntuación)
+            (Compara la Misión/Visión (CONTEXTO 1) con los Hallazgos Críticos (Punto 2) y la Alineación Interna (CONTEXTO 3). ¿Dónde está la mayor desconexión?,siempre regresa una tabla con las brechas entre los roles y su puntuación, ejemplo: Director vs Analista (.54))
 
             ## 5. Recomendaciones Accionables
             (Un plan de acción detallado, priorizado por impacto. Qué hacer, quién es responsable (rol), y cómo medirlo.)
